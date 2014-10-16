@@ -31,10 +31,14 @@ Configstore.prototype = Object.create(Object.prototype, {
 	all: {
 		get: function () {
 			try {
-				return yaml.safeLoad(fs.readFileSync(this.path, 'utf8'), {
+				var all = yaml.safeLoad(fs.readFileSync(this.path, 'utf8'), {
 					filename: this.path,
 					schema: yaml.JSON_SCHEMA
 				});
+				if (all == null) {
+					throw new Error('yaml.safeLoad returned undefined');
+				}
+				return all;
 			} catch (err) {
 				// create dir if it doesn't exist
 				if (err.code === 'ENOENT') {
@@ -60,11 +64,11 @@ Configstore.prototype = Object.create(Object.prototype, {
 			try {
 				// make sure the folder exists, it could have been
 				// deleted meanwhile
-				mkdirp.sync(path.dirname(this.path), defaultPathMode);
+				var createdDir = mkdirp.sync(path.dirname(this.path), defaultPathMode);
 				fs.writeFileSync(this.path, yaml.safeDump(val, {
 					skipInvalid: true,
 					schema: yaml.JSON_SCHEMA
-				}), writeFileOptions);
+				}), createdDir ? assign({ flag: 'wx' }, writeFileOptions) : writeFileOptions);
 			} catch (err) {
 				// improve the message of permission errors
 				if (err.code === 'EACCES') {
